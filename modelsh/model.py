@@ -1,12 +1,26 @@
 import torch
 from torch import nn
 from math import sqrt
-from utils.config import cfg
+# from utils.config import cfg
 from torch.autograd import Variable
 from torch.nn import functional as F
-from model.layers import Prenet, BatchNormConv1dStack
-from utils.util import mode #, get_mask_from_lengths
+# from models.layers import Prenet, BatchNormConv1dStack
+
+import sys
+sys.path.append("/work/Git/Tacotronpytorch")
+from tacotron2.utils import to_gpu, get_mask_from_lengths
+from modelsh.layers import Prenet, BatchNormConv1dStack
+# from utils.util import mode #, get_mask_from_lengths
 from attention import get_mask_from_lengths, AttentionWrapper, attention_mechanism
+from attention.gmm import GMMAttention
+from attention.attention_base import LocationSensitiveAttention
+
+def mode(obj, model = False):
+	if model and cfg.is_cuda:
+		obj = obj.cuda()
+	elif cfg.is_cuda:
+		obj = obj.cuda(non_blocking = cfg.pin_mem)
+	return obj
 
 class Postnet(nn.Module):
     """Postnet
@@ -63,13 +77,13 @@ class Encoder(nn.Module):
         return outputs
 
 
-class Decoder(nn.Module):
+class Decoder_GMM(nn.Module):
     def __init__(self, mel_dim, r, encoder_output_dim,
                  prenet_dims=[256, 256], prenet_dropout=0.5,
                  attention_dim=128, attention_rnn_units=1024, attention_dropout=0.1,
                  decoder_rnn_units=1024, decoder_rnn_layers=2, decoder_dropout=0.1,
                  max_decoder_steps=1000, stop_threshold=0.5):
-        super(Decoder, self).__init__()
+        super(Decoder_GMM, self).__init__()
 
         self.mel_dim = mel_dim
         self.r = r
@@ -87,7 +101,9 @@ class Decoder(nn.Module):
 
         self.attention_rnn = AttentionWrapper(
             nn.LSTMCell(prenet_dims[-1] + attention_context_dim, attention_rnn_units),
-            attention_mechanism(cfg.attention_type)(attention_rnn_units, attention_dim)
+            #attention_mechanism(cfg.attention_type)(attention_rnn_units, attention_dim)
+            #GMMAttention(attention_rnn_units, attention_dim)
+            LocationSensitiveAttention(attention_rnn_units, attention_dim)
         )
         self.attention_dropout = nn.Dropout(attention_dropout)
         # Process encoder_output as attention key

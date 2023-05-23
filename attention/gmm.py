@@ -7,15 +7,17 @@ import numpy as np
 import torch
 from torch import nn
 from torch.nn import functional as F
-from utils.config import cfg
+# from utils.config import cfg
 from attention.attention_base import BahdanauAttention
 
 
 class GMMAttention(BahdanauAttention):
     def __init__(self, query_dim, attn_dim, score_mask_value=1e-8):
         super(GMMAttention, self).__init__(query_dim, attn_dim, score_mask_value)
-        self.gmm_version = cfg.gmm_version
-        self.K = cfg.gmm_num_mixture # num mixture
+        # self.gmm_version = cfg.gmm_version
+        # self.K = cfg.gmm_num_mixture # num mixture
+        self.gmm_version = "2"
+        self.K = 8
         self.eps = 1e-5
         self.mlp = nn.Sequential(
             nn.Linear(query_dim, attn_dim, bias=True),
